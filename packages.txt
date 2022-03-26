@@ -1,7 +1,16 @@
+<<<<<<< HEAD
 pillow
 opencv-python
 numpy
 mss
 pynput
 torch
+=======
+pillow
+opencv-python
+numpy
+mss
+pynput
+torch
+>>>>>>> 736aa55 (Setup in PyCharm.)
 torchvision
