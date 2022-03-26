@@ -138,7 +138,7 @@ criterion = nn.MSELoss()
 
 replay_memory = []
 
-# Test
+# Test test
 while True: # Our main loop.
 
     checkAndReset()
