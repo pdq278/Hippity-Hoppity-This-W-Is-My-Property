@@ -199,14 +199,17 @@ class NeuralNetwork(nn.Module):
         self.imgTensors = []
 
 
-        self.conv1 = nn.Conv2d(4, 32, 16, 4) # Input channels, output channels, kernel size, stride
-        self.relu1 = nn.ReLU(inplace=True) # Inplace is true so we don't create a new tensor.
-        self.conv2 = nn.Conv2d(32, 16, 6, 2 )
-        self.relu2 = nn.ReLU(inplace=True)
-        self.fc4 = nn.Linear(784, 1024)
-        self.leakyrelu1 = nn.LeakyReLU(0.1, inplace=True)
+        self.conv1 = nn.Conv2d(4, 32, 8, 4) # Input channels, output channels, kernel size, stride
+        # Max pooling over 2x2 blocks
+        self.pool1 = nn.MaxPool2d(2, 2)
+        #self.relu1 = nn.ReLU(inplace=True) # Inplace is true so we don't create a new tensor.
+        self.conv2 = nn.Conv2d(32, 64, 4, 2)
+        self.pool2 = nn.MaxPool2d(2, 2)
+        #self.relu2 = nn.ReLU(inplace=True)
+        self.fc4 = nn.Linear(256, 1024)
+        self.relu3 = nn.ReLU(inplace=True)
         self.fc5 = nn.Linear(1024, 1024)
-        self.leakyrelu2 = nn.LeakyReLU(0.1, inplace=True)
+        self.relu4 = nn.ReLU(inplace=True)
         self.fc6 = nn.Linear(1024, self.number_of_actions)
 
     def init_weights(self, m):
@@ -226,14 +229,16 @@ class NeuralNetwork(nn.Module):
 
     def forward(self, x):
         out = self.conv1(x)
-        out = self.relu1(out)
+        out = self.pool1(out)
+        #out = self.relu1(out)
         out = self.conv2(out)
-        out = self.relu2(out)
+        out = self.pool2(out)
+        #out = self.relu2(out)
         out = out.view(out.size(0), -1)
         out = self.fc4(out)
-        out = self.leakyrelu1(out)
+        out = self.relu3(out)
         out = self.fc5(out)
-        out = self.leakyrelu2(out)
+        out = self.relu4(out)
         out = self.fc6(out)
 
         return out
@@ -271,7 +276,7 @@ while iteration < model.number_of_iterations:
     #print("Terminal Status At Start: " + str(terminal))
     # get output from the neural network
     output = model(state)[0]
-
+    print(output)
     # initialize action
     action = torch.zeros([model.number_of_actions], dtype=torch.float32)
     if torch.cuda.is_available():  # put on GPU if CUDA is available
@@ -362,13 +367,14 @@ while iteration < model.number_of_iterations:
     # calculate loss
     loss = criterion(q_value, y_batch)
 
-    # do backward pass
-    loss.backward()
-    optimizer.step()
 
     #print("TERMINAL VALUE: ", terminal)
     if (terminal):
         terminal = False
+
+        # do backward pass
+        loss.backward()
+        optimizer.step()
 
         #print("Old Current Time: " + str(currentTime))
         currentTime = time.time() # reset time
