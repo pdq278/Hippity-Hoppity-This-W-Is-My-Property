@@ -38,7 +38,7 @@ def grabScreen():
         img = np.array(sct.grab(monitor))
     img = Image.fromarray(img)
     img = img.convert('L')  # Convert to grayscale
-    img = img.point(lambda p: 0 if p < 125  else 255, '1')  # Convert to black and white
+    #img = img.point(lambda p: 0 if p < 125  else 255, '1')  # Convert to black and white
     img = img.resize((100, 100))
     ## Grab the screen. ##
     return img
@@ -71,6 +71,7 @@ paused = False
 informed = False
 
 while True:
+
     if (checkIfPPressed()):
         paused = not paused
         time.sleep(0.1)  # Sleep for 0.1 seconds to prevent spamming.
@@ -93,6 +94,7 @@ while True:
         img = np.array(img, dtype=np.int32)
         imagesArray.append(img)
         actionsArray.append(0) # 0 for no jump
+
 
 
 
