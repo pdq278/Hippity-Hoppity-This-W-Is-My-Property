@@ -34,6 +34,7 @@ class NeuralNetwork(nn.Module):
 
 
 
+
     def forward(self, input):
         # Convolutional layers
         out = self.layer1(input)
@@ -62,6 +63,7 @@ class NeuralNetwork(nn.Module):
         return out
 
 
+
     def train(self, x, y, learningRate, epochs, batchSize):
         # Loss and optimizer
         # Use binary cross entropy loss
@@ -69,7 +71,9 @@ class NeuralNetwork(nn.Module):
         optimizer = optim.Adam(self.parameters(), lr=learningRate)
         # Train the model
         avgLoss = 0
+        prevAvgLoss = 999
         lossList = []
+        avgLossList = []
         for epoch in range(epochs):
             lossValue = None
             for i in range(0, len(x), batchSize):
@@ -89,10 +93,18 @@ class NeuralNetwork(nn.Module):
                 optimizer.step()
 
 
-            avgLoss = sum(lossList) / len(lossList)
+            length = len(lossList)
+            avgLoss = sum(lossList) / length
+            avgLossList.append(avgLoss)
+            if (avgLoss > prevAvgLoss): # If the loss is increasing, we want to decrease the learning rate
+                learningRate = learningRate * 0.5
+                print("Learning rate decreased to: " + str(learningRate))
+                optimizer = optim.Adam(self.parameters(), lr=learningRate)
+            prevAvgLoss = avgLoss
             print("Epoch: ", epoch, "Loss: ", avgLoss)
-            if (len(lossList) % 100 == 0):
-                self.plotLoss(lossList)
+            if (epoch % 4 == 0 and epoch != 0):
+                #self.plotLoss(lossList)
+                self.plotLoss(avgLossList)
         return self, lossList
 
     def predict(self, x):
@@ -121,26 +133,31 @@ class NeuralNetwork(nn.Module):
         while (os.path.exists("loss" + str(i) + ".png")):
             i += 1
         plt.savefig("loss" + str(i) + ".png")
+        #plt.clf() # Clear the figure
         print("Saved loss plot")
 
 
 
 # Epochs
-epochs = 100
+epochs = 3
 # Batch size
-batch_size = 16
-# Learning rate
-learning_rate = 0.0001 # After model 45, I increased learning rate from 0.00001 to 0.0001.
+batch_size = 1
+# Learning rate, we want to use a very small learning rate
+learning_rate = 1e-8 # 1e-6
 
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("Running on device: ", device)
 
 
 model = NeuralNetwork()
-# Check if "HippityHoppityV2.pt" exists, if so load it.
-m = "HippityHoppityBIG_1.pt"
+m = "HippityHoppityMAIN_1400.pt" #
 if (os.path.isfile(m)):
     print("Loading model: " + m)
     model.load(m)
+
+if (torch.cuda.is_available()):
+    model.to(device)
 
 
 
@@ -166,8 +183,8 @@ def trainOnData(model, dataXPath, dataYPath, learning_rate, epochs, batch_size):
 
     # If CUDA is available, use it!
     if torch.cuda.is_available():
-        dataX = dataX.cuda()
-        dataY = dataY.cuda()
+        dataX = dataX.to(device)
+        dataY = dataY.to(device)
 
     # Train the model
     _, lossList = model.train(dataX, dataY, learning_rate, epochs, batch_size)
@@ -175,27 +192,30 @@ def trainOnData(model, dataXPath, dataYPath, learning_rate, epochs, batch_size):
 
 def saveModel(model):
     # Save the model
+    name = "HippityHoppityMAIN_"
     i = 1
-    if (os.path.isfile("HippityHoppityBIG_" + str(i) + ".pt")):
-        while (os.path.isfile("HippityHoppityBIG_" + str(i) + ".pt")):
+    if (os.path.isfile(name + str(i) + ".pt")):
+        while (os.path.isfile(name + str(i) + ".pt")):
             i += 1
-        model.save("HippityHoppityBIG_" + str(i) + ".pt")
+        model.save(name + str(i) + ".pt")
     else:
-        model.save("HippityHoppityBIG_" + str(i) + ".pt")
+        model.save(name + str(i) + ".pt")
 
 
 
 # We train on all the data.
-#levels = ["Stereo Madness", "Back on Track", "Polargeist", "Base After Base", "Cant Let Go"]
-#recordings = [[1,2,3,4,5,6,7], [1,2,3,4,5,6,7,8], [1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3]]
-levels = ["New Stereo Madness"]
-recordings = [[1,2,3,4,5,6,7]]
+#levels = ["New Stereo Madness", "New Back On Track"]
+#recordings = [[1,2,3,4,5,6], [1,2,3,4,5,6]]
+levels = ["New Stereo Madness", "New Back On Track", "New Polargeist", "New Cant Let Go", "New Base After Base", "New Jumper"]
+recordings = [[1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3,4,5], [1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3,4,5]]
+sessions = 20
 
-for recording in range(1, 8):
-    for levelIndex in range(len(levels)):
-        if (recording in recordings[levelIndex]):
-            # index is the index of where the recording number is in the recordings list.
-            index = recordings[levelIndex].index(recording)
-            print("Training on level: ", levels[levelIndex] + " Recording: ", recording)
-            trainOnData(model, levels[levelIndex] + "\\" + "GeometryDashRecording" + str(recordings[levelIndex][index]) + ".npy", levels[levelIndex] + "\\" + "GeometryDashRecordingActions" + str(recordings[levelIndex][index]) + ".npy", learning_rate, epochs, batch_size)
-            saveModel(model)
+for i in range(sessions):
+    for recording in range(1, 8):
+        for levelIndex in range(len(levels)):
+            if (recording in recordings[levelIndex]):
+                # index is the index of where the recording number is in the recordings list.
+                index = recordings[levelIndex].index(recording)
+                print("Training on level: ", levels[levelIndex] + " Recording: ", recording)
+                trainOnData(model, levels[levelIndex] + "\\" + "GeometryDashRecording" + str(recordings[levelIndex][index]) + ".npy", levels[levelIndex] + "\\" + "GeometryDashRecordingActions" + str(recordings[levelIndex][index]) + ".npy", learning_rate, epochs, batch_size)
+                saveModel(model)

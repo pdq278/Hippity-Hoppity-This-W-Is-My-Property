@@ -11,21 +11,22 @@ import keyboard
 import os
 import torch.utils.data.dataloader as dataloader
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 
 #################################################### GLOBALS ####################################################
 
+kb = Controller() # Create a keyboard.
+
 def pressSpace():
     print("Pressing space")
-    keyboard = Controller() # Create a keyboard.
-    keyboard.press(Key.space) # Press the space bar.
-    keyboard.release(Key.space) # Release the space bar.
+    kb.press(Key.space) # Press the space bar.
+    kb.release(Key.space) # Release the space bar.
 
 def pressUp():
     print("Pressing up")
-    keyboard = Controller() # Create a keyboard.
-    keyboard.press(Key.up) # Press the space bar.
-    keyboard.release(Key.up) # Release the space bar.
+    kb.press(Key.up) # Press the space bar.
+    kb.release(Key.up) # Release the space bar.
 
 # Captures the screen and returns the image.
 def grabScreen():
@@ -122,23 +123,42 @@ class NeuralNetwork(nn.Module):
     def toTensor(self, x):
         return torch.tensor(x)
 
+# This function takes the right half of the img and shifts it to the left by x pixels and returns it.
+
+
 
 
 model = NeuralNetwork()
-model.load("HippityHoppityBIG_4.pt")
+model.load("HippityHoppityMAIN_1400.pt")
+prevPrediction = 0
 
 while not checkIfEscapeKeyPressed():
     img = grabScreen()
     #showInWindow(img)
 
+
+
     img = np.array(img, dtype=np.float32)
     img = img.reshape(1, 1, 100, 100)
     img = model.toTensor(img)
     prediction = model.predict(img).detach()[0].item()
-    # Round the prediction to the nearest integer
-    print(prediction)
-    prediction = 1 if prediction >= 0.75 else 0
+
+
+
+
+    """
+    prediction = 1 if prediction >= 0.5 else 0
     if (prediction == 1):
+        pressUp()
+    else:
+        #print("Doing nothing.")
+        pass
+    """
+
+
+    jumpBias = 0 # This number influences beyond the prediction how much we jump
+    # A less deterministic way to do the same thing where we create a random number between 0 and 1 and compare it to the prediction, if the random number is less than or equal to the prediction, we press the up key.
+    if (random.random() <= prediction + jumpBias):
         pressUp()
     else:
         #print("Doing nothing.")
